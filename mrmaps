@@ -1,0 +1,6 @@
+#!/bin/bash
+## a little bash script that put in a temporary file the offset of libc in a process' memory.
+## the target pid is passed as first argument
+touch /tmp/mrmaps_tubo
+riga=$(grep -m1 libc "/proc/$1/maps")
+echo $riga | sed -e "s/\-.*//" > /tmp/mrmaps_tubo
