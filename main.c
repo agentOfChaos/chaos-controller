@@ -5,12 +5,15 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <errno.h>
+#include <signal.h>
 #include <linux/limits.h>
 
 #define offset 0x3C614
+#define shell_path "/bin/bash"
 
 const int long_size = sizeof(long);
 const int int_size = sizeof(int);
+int forkmode=0;
 
 int controlla_pid(pid_t pid)
 {
@@ -25,7 +28,69 @@ int controlla_pid(pid_t pid)
         }
     else return 0;
 }
-unsigned long long int prendi_addr(pid_t pid)
+unsigned long long int fork_n_read(pid_t pid)
+{
+    int readpipe [2] = {-1,-1};	/* child -> parent */
+    char shellcommand[120];
+    char numero[60];
+    char directory[PATH_MAX];
+    int reto;
+
+    #define	PARENT_READ	readpipe[0]
+    #define	CHILD_WRITE	readpipe[1]
+
+    pid_t childpid;
+    getwd(directory);
+
+    if (pipe(readpipe) < 0)
+        {
+        printf("Pipe error.\n");
+        exit(-4);
+        }
+    if ( (childpid = fork()) < 0)
+        {
+        printf("Fork error.\n");
+        exit(-5);
+        }
+    else if (childpid==0)
+        {
+        close(PARENT_READ);
+        dup2(CHILD_WRITE, 1);  close(CHILD_WRITE);
+        close(0);
+        sprintf(shellcommand,"%s/mrmaps %d",directory,pid);
+        execl(shell_path,shell_path,"-c",shellcommand,NULL);
+        printf("Execl error!\n");
+        exit(666);
+        }
+    else
+        {
+        close(CHILD_WRITE);
+        wait(&reto); reto=reto/256;
+        read(PARENT_READ,numero,60);
+        if (reto==666)
+            {
+            printf("Errore nella child: %s",numero);
+            close(PARENT_READ);
+            exit(-7);
+            }
+        else
+            {
+            close(PARENT_READ);
+            return strtoll(numero, (char **)NULL,16);
+            }
+        }
+}
+int isname(char *text) // if string contains at least 1 alphabetic character, assume is a filename
+{
+    int l=strlen(text);
+    int z;
+    for (z=0; z<l; z++)
+        {
+        if (isalpha(text[z]))return 1;
+        }
+    return 0;
+}
+unsigned long long int prendi_addr(pid_t pid) // deprecated and ugly
 {
     char esegui[120];
     char numero[60];
@@ -46,7 +111,7 @@ unsigned long long int prendi_addr(pid_t pid)
     else return -1;
 }
 void getdata(pid_t child, long addr,
-             char *str, int len)
+             char *str, int len) // those two 'sister' functions to work on the memory aren't mine, but borrowed from an article on linuxjournal. Open source is like this. Yap.
 {   char *laddr;
     int i, j;
     union u {
@@ -96,10 +161,6 @@ void putdata(pid_t child, long addr,
                addr + i * 4, data.val);
     }
 }
-/*void putdata(pid_t pid, long addr, char *str; int len)
-{
-
-}*/
 int aggancia(pid_t pid)
 {
     int ret;
@@ -109,6 +170,27 @@ int aggancia(pid_t pid)
         wait(NULL);
         }
     return ret;
+}
+int spawn(char *nomefile,pid_t *pid)
+{
+    //char path[PATH_MAX];
+    pid_t child=fork();
+    if (child<0)
+        {
+        printf("Fork error.\n");
+        return -1;
+        }
+    if (child==0)
+        {
+        execl(nomefile,nomefile,NULL);
+        printf("Exec error.\n");
+        exit(-1);
+        }
+    else
+        {
+        *pid=child;
+        return 1;
+        }
 }
 void nopmode(pid_t pid,unsigned long long int bersaglio)
 {
@@ -178,10 +260,17 @@ int main(int argc, char *argv[])
     if (argc>=2)
         {
         if (strcmp(argv[1],"-h")!=0 && strcmp(argv[1],"--help")!=0)
-                pid=atoi(argv[1]);
+            {
+            if (isname(argv[1]))
+                {
+                printf("Fork mode is on!\n");
+                forkmode=1;
+                }
+            pid=atoi(argv[1]);
+            }
         else
             {
-            printf("First argument: target pid\n");
+            printf("First argument: target pid. If the argument is alphanumeric, the program will interpret it as full executable path of a child process to spawn (then attach)\n");
             printf("Second argument: injection mode [0-2]\n");
             printf("Third argument: (if mode is set to 1) return value to inject\n");
             }
@@ -192,12 +281,18 @@ int main(int argc, char *argv[])
         scanf("%d",&pid);
         getchar();
         }
+    if (forkmode){
+    if (spawn(argv[1],&pid)==-1)
+            {
+            printf("Cannot spawn the process.\n");
+            exit(-3);
+            }}
     if (controlla_pid(pid)==0)
         {
         printf("unexistent process.\n");
         exit(-1);
         }
-    libc_addr=prendi_addr(pid);
+    libc_addr=fork_n_read(pid);
     if (libc_addr==-1)
         {
         printf("Unexpected error.\n");
@@ -213,6 +308,7 @@ int main(int argc, char *argv[])
         {
         printf("Action course?\n\n\t0\tNOP\n\t1\tCustom return value\n\t2\tFix code\n\t\t");
         scanf("%d",&mode);
+        getchar();
         }
     if (argc>=4 && mode==1)
         {
@@ -222,17 +318,19 @@ int main(int argc, char *argv[])
         {
         printf("Numeric value to inject? ");
         scanf("%d",&valore_eax);
+        getchar();
         }
-    if (aggancia(pid)==-1)
-        {
-        printf("Cannot attach the process. Try running in as sudo.\n");
-        exit(-3);
-        }
+        if (aggancia(pid)==-1)
+            {
+            printf("Cannot attach the process. Try running in as sudo.\n");
+            exit(-3);
+            }
     if (!safecheck(pid,bersaglio) && mode!=2)
         {
         printf("Unexpected result! Recognitions report a target memory word that does not match the expected one.\n");
         printf("Have you come all this way for safety? (y/n) ");
         scanf("%c",&ans);
+        getchar();
         if (ans!='n')exit(-3);
         }
     switch (mode)
@@ -242,6 +340,23 @@ int main(int argc, char *argv[])
         default: restore(pid,bersaglio);
         }
     printf("Done!\n");
-    ptrace(PTRACE_DETACH,pid,NULL,NULL);
+    if (forkmode)
+        {
+        printf("Kill the child process on exit? (y/n) ");
+        scanf("%c",&ans);
+        getchar();
+        if (ans=='y' || ans=='Y')
+            {
+            ptrace(PTRACE_DETACH,pid,NULL,NULL);
+            kill(pid,SIGKILL); // extreme pregiudice!
+            printf("Done!\n");
+            }
+        else
+            {
+            printf("Init will do it for you.\n");
+            ptrace(PTRACE_DETACH,pid,NULL,NULL);
+            }
+        }
+    else ptrace(PTRACE_DETACH,pid,NULL,NULL);
     return 0;
 }
