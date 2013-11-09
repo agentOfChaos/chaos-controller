@@ -1,6 +1,9 @@
 #!/bin/bash
-## a little bash script that put in a temporary file the offset of libc in a process' memory.
+## a little bash script that returns the offset of libc in a process' memory.
 ## the target pid is passed as first argument
-touch /tmp/mrmaps_tubo
-riga=$(grep -m1 libc "/proc/$1/maps")
+
+# setup for your system: name of the libc shared object or part of it, to identify it in /proc/$pid/maps
+setup_libc="libc-2"
+
+riga=$(grep -m1 $setup_libc "/proc/$1/maps")
 echo $riga | sed -e "s/\-.*//"

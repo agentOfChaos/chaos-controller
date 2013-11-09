@@ -1,0 +1,15 @@
+void getdata(pid_t child, long addr,char *str, int len);
+void putdata(pid_t child, long addr,char *str, int len);
+void nopmode(pid_t pid,unsigned long long int bersaglio);
+void customnum(pid_t pid,unsigned long long int bersaglio, int valore_eax);
+void restore(pid_t pid,unsigned long long int bersaglio);
+int safecheck(pid_t pid,unsigned long long int bersaglio);
+int isname(char *text);
+int controlla_pid(pid_t pid);
+int spawn(char *nomefile,pid_t *pid);
+void printhelpNquit(char *name);
+int opt_help(char *opt);
+void parse_cmdline(int *argc, char *argv[], int *mode, int *forkmode, pid_t *pidtarg, int *offsetmode, int *valeax);
+unsigned long long int libc_posiz(pid_t pid);
+int aggancia(pid_t pid);
+unsigned long long int self_discover();

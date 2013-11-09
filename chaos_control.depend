@@ -1,0 +1,62 @@
+# depslib dependency file v1.0
+1384010834 source:/home/michele/Programmi_linux/chaos-controller/enlighten.c
+	<dlfcn.h>
+	<stdio.h>
+	<stdlib.h>
+
+1384014209 source:/home/michele/Programmi_linux/chaos-controller/inj_wrapper.c
+	<stdio.h>
+	<stdlib.h>
+	<sys/ptrace.h>
+	<unistd.h>
+	<sys/types.h>
+	<sys/user.h>
+	<errno.h>
+	<signal.h>
+	<linux/limits.h>
+	"constants.h"
+	"prototypes.h"
+
+1384010200 /home/michele/Programmi_linux/chaos-controller/constants.h
+
+1384016793 /home/michele/Programmi_linux/chaos-controller/prototypes.h
+
+1384002952 source:/home/michele/Programmi_linux/chaos-controller/injection.c
+	<stdio.h>
+	<stdlib.h>
+	<sys/ptrace.h>
+	<unistd.h>
+	<sys/types.h>
+	<sys/user.h>
+	<errno.h>
+	<signal.h>
+	<linux/limits.h>
+	"constants.h"
+	"prototypes.h"
+
+1384015160 source:/home/michele/Programmi_linux/chaos-controller/main.c
+	<dlfcn.h>
+	<stdio.h>
+	<stdlib.h>
+	<sys/ptrace.h>
+	<unistd.h>
+	<sys/types.h>
+	<sys/user.h>
+	<errno.h>
+	<signal.h>
+	<linux/limits.h>
+	"constants.h"
+	"prototypes.h"
+
+1384016662 source:/home/michele/Programmi_linux/chaos-controller/parse_cmd.c
+	<stdio.h>
+	<stdlib.h>
+	"constants.h"
+	"prototypes.h"
+
+1384012668 source:/home/michele/Programmi_linux/chaos-controller/support_funz.c
+	<stdio.h>
+	<stdlib.h>
+	"constants.h"
+	"prototypes.h"
+
